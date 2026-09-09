@@ -27,8 +27,10 @@ const policy: RankerPolicy<Document> = {
 const ranked = rank(documents, query, policy, { now: fixedTimestamp });
 ```
 
-Pass a fixed `now` whenever the policy has time-based logic. Use a stable,
-explicit tie-breaker so equal scores have reproducible ordering. Read the
+Pass a fixed `now` whenever the policy has time-based logic; it is required for
+declarative `recency` policies. Use a stable, explicit tie-breaker so equal
+scores have reproducible ordering. Use unique field names and a reusable
+stopword array or set. Read the
 [README](README.md) for normalization limits before replacing a locale-aware or
 fuzzy search implementation.
 

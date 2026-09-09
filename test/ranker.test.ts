@@ -34,6 +34,21 @@ test('empty and stopword-only queries have no results', () => {
   assert.deepEqual(rank(articles, 'the and', policy), []);
 });
 
+test('stopwords require a reusable array or set and preserve repeated ranking', () => {
+  const generator = function* (): Generator<string> {
+    yield 'the';
+  };
+  const invalidGeneratorPolicy = { ...policy, stopwords: generator() } as unknown as RankerPolicy<Article>;
+  const invalidStringPolicy = { ...policy, stopwords: 'the' } as unknown as RankerPolicy<Article>;
+  assert.throws(() => rank(articles, 'porto', invalidGeneratorPolicy), /reusable readonly string\[\] or ReadonlySet/);
+  assert.throws(() => rank(articles, 'porto', invalidStringPolicy), /reusable readonly string\[\] or ReadonlySet/);
+
+  const reusablePolicy: RankerPolicy<Article> = { ...policy, stopwords: new Set(['the', 'and']) };
+  const search = createRanker(reusablePolicy);
+  assert.deepEqual(search(articles, 'porto').map((result) => result.document.id), ['beta', 'alpha']);
+  assert.deepEqual(search(articles, 'porto').map((result) => result.document.id), ['beta', 'alpha']);
+});
+
 test('an alphanumeric single-character policy keeps punctuation terms for boosts but out of mandatory matching', () => {
   const results = rank(articles, '$ cafe', {
     ...policy,
@@ -117,6 +132,29 @@ test('declarative recency bands share the rank call clock and include their boun
     },
   }, { now: Date.parse('2020-01-03T00:00:00Z') });
   assert.deepEqual(results.map((result) => result.document.id), ['edge', 'old']);
+});
+
+test('declarative recency requires an explicit clock while non-recency policies retain deterministic zero', () => {
+  const recencyPolicy: RankerPolicy<Article> = {
+    ...policy,
+    recency: {
+      getTimestamp: (article) => Date.parse(article.updatedAt ?? ''),
+      bands: [{ maxAgeMs: 86_400_000, score: 10 }],
+    },
+  };
+  assert.throws(() => rank(articles, 'porto', recencyPolicy), /options\.now is required/);
+  assert.equal(rank(articles, 'porto', policy)[0]?.document.id, 'beta');
+});
+
+test('duplicate field names fail instead of overwriting a value while scoring twice', () => {
+  const duplicatePolicy: RankerPolicy<Article> = {
+    ...policy,
+    fields: [
+      { name: 'text', getValue: (article) => article.title, weights: { exact: 1, prefix: 1, token: 1, includes: 1 } },
+      { name: 'text', getValue: (article) => article.summary, weights: { exact: 1, prefix: 1, token: 1, includes: 1 } },
+    ],
+  };
+  assert.throws(() => rank(articles, 'porto', duplicatePolicy), /duplicate name "text"/);
 });
 
 test('a custom tie comparator can retain an application-specific tie policy', () => {

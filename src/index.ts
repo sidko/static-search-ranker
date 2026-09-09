@@ -82,8 +82,8 @@ export type RankerPolicy<T> = Readonly<{
   fields: readonly SearchField<T>[];
   /** Defaults to the module's documented ASCII-oriented normalization. */
   normalize?: (value: string) => string;
-  /** Terms removed before matching and scoring. */
-  stopwords?: Iterable<string>;
+  /** Reusable terms removed before matching and scoring. */
+  stopwords?: readonly string[] | ReadonlySet<string>;
   /** Require every remaining query term to appear at a token boundary. Default: true. */
   requireAllTerms?: boolean;
   /**
@@ -115,7 +115,7 @@ export type RankerPolicy<T> = Readonly<{
 
 export type RankOptions = Readonly<{
   limit?: number;
-  /** Required for time-based policies; defaults to 0 for deterministic ranking. */
+  /** Required when policy.recency is configured; otherwise defaults to 0 for deterministic ranking. */
   now?: Date | number;
 }>;
 
@@ -136,6 +136,29 @@ const asTimestamp = (value: Date | number | undefined): number => {
   const timestamp = typeof value === 'number' ? value : value.getTime();
   if (!Number.isFinite(timestamp)) throw new TypeError('options.now must be a finite Date or number.');
   return timestamp;
+};
+
+const normalizedStopwords = (
+  value: RankerPolicy<unknown>['stopwords'],
+  normalize: (value: string) => string,
+): Set<string> => {
+  if (value === undefined) return new Set();
+  if (typeof value === 'string' || (!Array.isArray(value) && !(value instanceof Set))) {
+    throw new TypeError(
+      'policy.stopwords must be a reusable readonly string[] or ReadonlySet<string>; strings and one-shot iterables are not supported.',
+    );
+  }
+  return new Set(Array.from(value, normalize));
+};
+
+const assertUniqueFieldNames = <T>(fields: readonly SearchField<T>[]): void => {
+  const names = new Set<string>();
+  for (const field of fields) {
+    if (names.has(field.name)) {
+      throw new TypeError(`policy.fields contains duplicate name "${field.name}"; field names must be unique.`);
+    }
+    names.add(field.name);
+  }
 };
 
 const normalizeFieldValue = (value: SearchFieldValue, normalize: (value: string) => string): string => {
@@ -211,12 +234,16 @@ export const rank = <T>(
   policy: RankerPolicy<T>,
   options: RankOptions = {},
 ): Ranked<T>[] => {
+  assertUniqueFieldNames(policy.fields);
+  if (policy.recency && options.now === undefined) {
+    throw new TypeError('options.now is required when policy.recency is configured.');
+  }
   const normalize = policy.normalize ?? normalizeText;
   const normalizedQuery = normalize(query);
   if (!normalizedQuery) return [];
 
   const rawTerms = normalizedQuery.split(' ').filter(Boolean);
-  const stopwords = new Set(Array.from(policy.stopwords ?? [], normalize));
+  const stopwords = normalizedStopwords(policy.stopwords, normalize);
   const terms = rawTerms.filter((term) => !stopwords.has(term));
   if (!terms.length) return [];
 

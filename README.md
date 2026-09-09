@@ -50,7 +50,10 @@ example and its checked output.
 For time-based policies, `scoreRecency(timestamp, now, bands)` assigns the
 score from the first matching inclusive age band; invalid timestamps produce
 zero. A policy can instead set `recency: { getTimestamp, bands }`, which uses
-the single `now` value passed to `rank`.
+the single `now` value passed to `rank`. A declarative `recency` policy requires
+an explicit `options.now`; without it `rank` throws rather than silently using
+the Unix epoch. Policies without declarative recency retain the deterministic
+default clock value of `0`.
 
 ## Why use it
 
@@ -72,6 +75,10 @@ Search quality depends on the policy and the indexed text you supply. A
 `RankerPolicy` is intentionally application-owned: this package does not infer
 business intent, routing, permissions, or result presentation. Pass `now` when
 using time-based ranking so the result can be reproduced in tests.
+
+Field names must be unique within a policy. `stopwords` accepts only a reusable
+readonly string array or `ReadonlySet<string>`; strings and one-shot iterables
+such as generators are rejected so repeated calls produce the same policy.
 
 The initial release supports Node.js 20 or newer and ESM consumers. Browser
 bundlers that support standard ESM can use the package; its source does not
