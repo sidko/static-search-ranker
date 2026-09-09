@@ -62,6 +62,20 @@ test('the default numeric index tie breaker preserves input order after ten resu
   assert.deepEqual(results.map((result) => result.document.id), Array.from({ length: 12 }, (_, index) => String(index)));
 });
 
+test('mixed tie keys have a total deterministic order independent of input order', () => {
+  const mixed = [
+    { id: 'string-fifteen', title: 'Map', summary: '', key: '15' },
+    { id: 'number-ten', title: 'Map', summary: '', key: 10 },
+    { id: 'string-zero-five', title: 'Map', summary: '', key: '05' },
+    { id: 'number-two', title: 'Map', summary: '', key: 2 },
+    { id: 'not-a-number', title: 'Map', summary: '', key: Number.NaN },
+  ];
+  const mixedPolicy = { ...policy, tieBreaker: (article: typeof mixed[number]) => article.key };
+  const expected = ['number-two', 'number-ten', 'string-zero-five', 'string-fifteen', 'not-a-number'];
+  assert.deepEqual(rank(mixed, 'map', mixedPolicy).map((result) => result.document.id), expected);
+  assert.deepEqual(rank([...mixed].reverse(), 'map', mixedPolicy).map((result) => result.document.id), expected);
+});
+
 test('phrase weights score a whole-query title match once', () => {
   const results = rank([
     { id: 'phrase', title: 'Porto guide', summary: '' },

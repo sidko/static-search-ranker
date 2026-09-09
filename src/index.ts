@@ -101,8 +101,9 @@ export type RankerPolicy<T> = Readonly<{
   /** Add domain-specific points, such as recency, from an explicit clock. */
   boost?: (context: RankContext<T>) => number;
   /**
-   * A stable key used after score. Comparison is code-unit lexical order, never
-   * `localeCompare`, so results do not vary with the runtime locale.
+   * A stable key used after score. Finite numeric keys sort before string keys;
+   * each type then sorts ascending (numbers numerically, strings by code unit).
+   * Non-finite numbers are treated as strings. No comparison uses locale state.
    */
   tieBreaker?: (document: T) => string | number;
   /**
@@ -123,9 +124,12 @@ export type Ranked<T> = Readonly<{
   score: number;
 }>;
 
-type IndexedRanked<T> = Ranked<T> & Readonly<{ index: number; tieBreaker: string | number }>;
+type TieBreaker = Readonly<
+  | { kind: 'number'; value: number }
+  | { kind: 'string'; value: string }
+>;
 
-const defaultWeights: FieldWeights = { exact: 1, prefix: 1, token: 1, includes: 1 };
+type IndexedRanked<T> = Ranked<T> & Readonly<{ index: number; tieBreaker: TieBreaker }>;
 
 const asTimestamp = (value: Date | number | undefined): number => {
   if (value === undefined) return 0;
@@ -169,9 +173,17 @@ export const scoreRecency = (
 
 const compareText = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);
 
-const compareTieBreaker = (left: string | number, right: string | number): number => {
-  if (typeof left === 'number' && typeof right === 'number') return left - right;
-  return compareText(String(left), String(right));
+const asTieBreaker = (value: string | number): TieBreaker => (
+  typeof value === 'number' && Number.isFinite(value)
+    ? { kind: 'number', value }
+    : { kind: 'string', value: String(value) }
+);
+
+const compareTieBreaker = (left: TieBreaker, right: TieBreaker): number => {
+  if (left.kind === 'number' && right.kind === 'number') return left.value - right.value;
+  if (left.kind !== right.kind) return left.kind === 'number' ? -1 : 1;
+  if (left.kind === 'string' && right.kind === 'string') return compareText(left.value, right.value);
+  return 0;
 };
 
 /**
@@ -236,7 +248,7 @@ export const rank = <T>(
       for (const term of terms) {
         for (const field of policy.fields) {
           if (field.weights) {
-            score += scoreField(fields.get(field.name) ?? '', term, field.weights ?? defaultWeights, minimumSubstringLength);
+            score += scoreField(fields.get(field.name) ?? '', term, field.weights, minimumSubstringLength);
           }
         }
       }
@@ -250,7 +262,7 @@ export const rank = <T>(
         document,
         score,
         index,
-        tieBreaker: policy.tieBreaker?.(document) ?? index,
+        tieBreaker: asTieBreaker(policy.tieBreaker?.(document) ?? index),
       };
     })
     .filter((result): result is IndexedRanked<T> => result !== null)
