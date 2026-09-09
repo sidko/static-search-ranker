@@ -1,0 +1,40 @@
+{
+  "name": "static-search-ranker",
+  "version": "0.1.0",
+  "description": "Dependency-free, configurable ranking for static search indexes.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    }
+  },
+  "types": "./lib/index.d.ts",
+  "files": [
+    "lib",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "test": "npm run build && tsc --project tsconfig.test.json && node --test .test-dist/test/ranker.test.js",
+    "prepack": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sidko/static-search-ranker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sidko/static-search-ranker/issues"
+  },
+  "homepage": "https://github.com/sidko/static-search-ranker#readme",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/node": "24.3.1",
+    "typescript": "5.9.3"
+  }
+}
