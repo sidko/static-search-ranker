@@ -3,7 +3,7 @@
 A small, dependency-free TypeScript ranker for static search indexes where the
 scoring policy and ordering rules should be visible in code.
 
-![Synthetic search result for “porto guide”](docs/assets/porto-guide-results.svg)
+![Synthetic search result for “porto guide”](https://raw.githubusercontent.com/sidko/static-search-ranker/main/docs/assets/porto-guide-results.svg)
 
 `static-search-ranker` turns an array of records plus a declarative field policy
 into deterministic ranked results. It is useful for a documentation site,
@@ -44,7 +44,7 @@ console.log(results.map(({ document, score }) => ({ id: document.id, score })));
 
 The package exports `rank`, `createRanker`, `normalizeText`, `tokenize`, and
 `scoreRecency`, plus its public TypeScript types. See
-[the synthetic runnable example](examples/porto-guides.mjs) for the complete
+[the synthetic runnable example](https://github.com/sidko/static-search-ranker/blob/main/examples/porto-guides.mjs) for the complete
 example and its checked output.
 
 For time-based policies, `scoreRecency(timestamp, now, bands)` assigns the
@@ -109,9 +109,11 @@ Finance’s logos or visual identity.
 ## Contributing and security
 
 Contributions are welcome under Apache-2.0; see
-[CONTRIBUTING.md](CONTRIBUTING.md). Please report vulnerabilities privately as
-described in [SECURITY.md](SECURITY.md). For adoption notes, including an
-integration and rollback recipe, see [AGENT_INTEGRATION.md](AGENT_INTEGRATION.md).
+[CONTRIBUTING.md](https://github.com/sidko/static-search-ranker/blob/main/CONTRIBUTING.md).
+Please report vulnerabilities privately as described in
+[SECURITY.md](https://github.com/sidko/static-search-ranker/blob/main/SECURITY.md).
+For adoption notes, including an integration and rollback recipe, see
+[AGENT_INTEGRATION.md](https://github.com/sidko/static-search-ranker/blob/main/AGENT_INTEGRATION.md).
 
 Maintenance is best effort. The latest released version is supported unless a
 release note says otherwise.
