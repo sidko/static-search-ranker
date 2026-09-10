@@ -1,44 +1,61 @@
 name: Publish to npm
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ["v*"]
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   publish:
     if: github.event.repository.full_name == 'sidko/static-search-ranker'
     runs-on: ubuntu-24.04
     environment: npm
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - name: Check out the release tag
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name }}
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.22.2
           registry-url: https://registry.npmjs.org
           cache: npm
-      - name: Use npm with trusted-publishing support
-        run: npm install --global npm@11.19.1
-      - name: Verify the release tag matches package.json
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+      - run: npm install --global npm@11.19.1
+      - run: npm ci
+      - run: npm test
+      - name: Verify tag and publish the exact packed bytes when absent
+        shell: bash
         run: |
+          set -euo pipefail
+          package_name="$(node -p 'require("./package.json").name')"
           package_version="$(node -p 'require("./package.json").version')"
           test "$RELEASE_TAG" = "v$package_version"
-      - name: Install and test
-        run: |
-          npm ci
-          npm test
-      - name: Publish a stable release with provenance
-        if: github.event.release.prerelease == false
-        run: npm publish --access public --provenance
-      - name: Publish a prerelease with provenance
-        if: github.event.release.prerelease == true
-        run: npm publish --access public --provenance --tag next
+          npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
+          package_file="$(node -p 'require(process.env.RUNNER_TEMP + "/pack.json")[0].filename')"
+          package_path="$RUNNER_TEMP/$package_file"
+          local_shasum="$(shasum -a 1 "$package_path" | awk '{print $1}')"
+          published_shasum="$(npm view "$package_name@$package_version" dist.shasum 2>/dev/null || true)"
+          if test -z "$published_shasum"; then
+            npm publish "$package_path" --access public --provenance
+          elif test "$published_shasum" = "$local_shasum"; then
+            echo "npm already has these exact package bytes"
+          else
+            echo "npm already has $package_name@$package_version with different bytes" >&2
+            exit 1
+          fi
+  release:
+    needs: publish
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - run: gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" --verify-tag --generate-notes
