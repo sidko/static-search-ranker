@@ -99,11 +99,9 @@ runs that same example from a clean install.
 
 ## Origin and history
 
-This package was extracted from the site-search scoring work in
-[Gale Finance](https://gale.finance/). Gale-specific search documents, routing,
-locale handling, finance intent rules, and content remain in Gale. Until Gale's
-cutover is complete, this repository describes the package as “extracted from
-Gale”; it does not claim that Gale already uses the published package.
+Gale Finance uses `static-search-ranker@0.1.0` for the ranking layer behind its
+[site search](https://www.gale.finance/search/). Gale-specific search documents,
+routing, locale handling, finance intent rules, and content remain in Gale.
 
 Early commits reconstruct a milestone developed in the private Gale Finance
 monorepo. Author dates reflect the original work; public content and hashes were
