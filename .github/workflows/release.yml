@@ -42,7 +42,10 @@ jobs:
           local_shasum="$(shasum -a 1 "$package_path" | awk '{print $1}')"
           published_shasum="$(npm view "$package_name@$package_version" dist.shasum 2>/dev/null || true)"
           if test -z "$published_shasum"; then
-            npm publish "$package_path" --access public --provenance
+            if [[ "$package_version" == *-* ]]; then
+              npm publish "$package_path" --access public --provenance --tag next
+            else
+              npm publish "$package_path" --access public --provenance
           elif test "$published_shasum" = "$local_shasum"; then
             echo "npm already has these exact package bytes"
           else
@@ -56,6 +59,10 @@ jobs:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
       RELEASE_TAG: ${{ github.ref_name }}
     steps:
-      - run: gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" --verify-tag --generate-notes
+      - run: |
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 && exit 0
+          if [[ "$RELEASE_TAG" == *-* ]]; then gh release create "$RELEASE_TAG" --verify-tag --generate-notes --prerelease
+          else gh release create "$RELEASE_TAG" --verify-tag --generate-notes; fi
