@@ -46,6 +46,7 @@ jobs:
               npm publish "$package_path" --access public --provenance --tag next
             else
               npm publish "$package_path" --access public --provenance
+            fi
           elif test "$published_shasum" = "$local_shasum"; then
             echo "npm already has these exact package bytes"
           else
