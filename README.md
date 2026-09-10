@@ -7,7 +7,7 @@ scoring policy and ordering rules should be visible in code.
 
 ![Live Gale Finance search results for “btc vs spy”](https://raw.githubusercontent.com/sidko/static-search-ranker/main/docs/assets/gale-search.jpg)
 
-The image is a captured result from [Gale's live search for “btc vs spy”](https://www.gale.finance/search/?q=btc%20vs%20spy). The small example below is deliberately narrower: it reproduces a transparent ranking policy with a few verified public page titles and URLs.
+The image is a captured result from [Gale's live search for “btc vs spy”](https://www.gale.finance/search/?q=btc%20vs%20spy). The small example below illustrates the package API with a transparent financial-search policy.
 
 `static-search-ranker` turns an array of records plus a declarative field policy
 into deterministic ranked results. It is useful for a documentation site,
@@ -21,63 +21,34 @@ npm install static-search-ranker
 ```ts
 import { rank, type RankerPolicy } from 'static-search-ranker';
 
-type Page = { id: string; title: string; url: string; tickers: string[] };
+type AssetPage = { id: string; title: string };
 
-const pages: Page[] = [
-  {
-    id: 'btc-vs-spy-2021',
-    title: 'Bitcoin vs S&P 500 (BTC vs SPY): Returns, Risk & Volatility (2021)',
-    url: 'https://www.gale.finance/compare/btc-vs-spy-2021/',
-    tickers: ['BTC', 'SPY'],
-  },
-  {
-    id: 'btc-vs-spy',
-    title: 'Bitcoin vs S&P 500 (SPY): 2026 Risk & Sharpe Ratio',
-    url: 'https://www.gale.finance/compare/btc-vs-spy/',
-    tickers: ['BTC', 'SPY'],
-  },
-  {
-    id: 'btc-vs-spy-scorecard',
-    title: 'Bitcoin vs S&P 500: 10-Year Performance Scorecard (2016-2025)',
-    url: 'https://www.gale.finance/scorecard/btc-vs-spy/',
-    tickers: ['BTC', 'SPY'],
-  },
-  {
-    id: 'calculator',
-    title: 'What If I Invested $1,000? Compare Bitcoin, Gold, SPY & Ethereum',
-    url: 'https://www.gale.finance/calculator/',
-    tickers: ['BTC', 'SPY', 'ETH'],
-  },
+const pages: AssetPage[] = [
+  { id: 'btc-vs-spy', title: 'Bitcoin vs S&P 500' },
+  { id: 'bitcoin-calculator', title: 'Investment calculator for Bitcoin' },
+  { id: 'spy-risk', title: 'S&P 500 risk metrics' },
 ];
 
-const policy: RankerPolicy<Page> = {
+const policy: RankerPolicy<AssetPage> = {
   fields: [
     { name: 'title', getValue: (page) => page.title, weights: { exact: 100, prefix: 60, token: 40, includes: 20 } },
-    { name: 'tickers', getValue: (page) => page.tickers, weights: { exact: 50, prefix: 35, token: 25, includes: 12 } },
   ],
-  stopwords: ['the', 'and', 'vs'],
   tieBreaker: (page) => page.id,
 };
 
-const results = rank(pages, 'btc vs spy', policy, {
-  now: Date.parse('2026-01-01T00:00:00Z'),
-  limit: 5,
-});
+const results = rank(pages, 'bitcoin', policy);
 
 console.log(results.map(({ document, score }) => ({ id: document.id, score })));
+// [{ id: 'btc-vs-spy', score: 60 }, { id: 'bitcoin-calculator', score: 40 }]
 ```
 
 The package exports `rank`, `createRanker`, `normalizeText`, `tokenize`, and
-`scoreRecency`, plus its public TypeScript types. See
-[the runnable Gale Finance example](https://github.com/sidko/static-search-ranker/blob/main/examples/gale-finance-search.mjs) for the complete
-example and its checked output.
+`scoreRecency`, plus its public TypeScript types.
 
-The example deliberately uses only four public Gale page titles, URLs, and
-tickers. It shows a minimal, illustrative field policy for this package; Gale's production
-search adapter also owns document creation, routing, finance-specific intent,
-and result presentation.
-
-![Illustrative output from the minimal Gale example](https://raw.githubusercontent.com/sidko/static-search-ranker/main/docs/assets/gale-finance-search-results.svg)
+The production adapter owns document creation, routing, finance-specific
+intent, and result presentation. See [the runnable Gale Finance
+example](https://github.com/sidko/static-search-ranker/blob/main/examples/gale-finance-search.mjs)
+for a small verified-public-metadata fixture and its checked output.
 
 For time-based policies, `scoreRecency(timestamp, now, bands)` assigns the
 score from the first matching inclusive age band; invalid timestamps produce
