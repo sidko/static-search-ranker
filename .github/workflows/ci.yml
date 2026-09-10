@@ -37,9 +37,9 @@ jobs:
           set -euo pipefail
           package_file="$(node -p 'require("./artifacts/pack.json")[0].filename')"
           consumer_dir="$(mktemp -d)"
-          cp examples/porto-guides.mjs "$consumer_dir/"
+          cp examples/gale-finance-search.mjs "$consumer_dir/"
           pushd "$consumer_dir"
           npm init --yes
           npm install "$GITHUB_WORKSPACE/artifacts/$package_file"
-          node porto-guides.mjs
+          node gale-finance-search.mjs
           popd

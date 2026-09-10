@@ -12,7 +12,7 @@ Use Node.js 20 or newer:
 npm ci
 npm test
 npm run build
-node examples/porto-guides.mjs
+node examples/gale-finance-search.mjs
 ```
 
 Changes to ranking behavior should state the effect on normalization, matching,

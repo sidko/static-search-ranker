@@ -38,8 +38,10 @@ fuzzy search implementation.
 
 Run the consumer’s relevant type-check and tests. Compare old and new complete
 ranked result lists using the same documents, query, clock, and ordering policy.
-Use synthetic inputs in public logs and examples. Confirm the installed package
-is imported, rather than a copied source file.
+Use synthetic inputs in public logs and examples, or a small set of public page
+titles and URLs that you have verified. Do not include provider data,
+credentials, private index exports, or operational configuration. Confirm the
+installed package is imported, rather than a copied source file.
 
 For this repository:
 
@@ -47,7 +49,7 @@ For this repository:
 npm ci
 npm test
 npm run build
-node examples/porto-guides.mjs
+node examples/gale-finance-search.mjs
 ```
 
 After release, install the registry artifact in a clean consumer and run the
